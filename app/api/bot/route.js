@@ -136,19 +136,27 @@ bot.on("message", async (ctx) => {
 });
 
 // ✅ Webhook handler
-import { NextResponse } from "next/server";
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
 
-export async function POST(req) {
   try {
-    const body = await req.json();
-    console.log("📥 Incoming Webhook:", JSON.stringify(body, null, 2));
+    await connectDB(); // Ensure DB is connected
 
-    // Immediately return 200 to prevent timeout
-    setTimeout(() => bot.handleUpdate(body), 0);
+    const update = req.body;
+    console.log("📥 Incoming Webhook Update:", update);
 
-    return new NextResponse("OK", { status: 200 });
+    if (update.message && update.message.text === "/weather") {
+      const chatId = update.message.chat.id;
+      await bot.telegram.sendMessage(chatId, "🌤 Fetching weather...");
+
+      return res.status(200).json({ message: "Weather command received" });
+    }
+
+    return res.status(200).json({ message: "Update processed" });
   } catch (error) {
-    console.error("❌ Webhook error:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error("❌ Webhook Error:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 }
