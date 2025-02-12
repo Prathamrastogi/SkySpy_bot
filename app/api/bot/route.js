@@ -4,15 +4,24 @@ import User from "../../../models/User";
 import fetch from "node-fetch";
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
+
 if (!BOT_TOKEN) throw new Error("BOT_TOKEN is required");
 
-// ✅ Ensure only one bot instance globally (for Vercel deployments)
+setInterval(async () => {
+  try {
+    await fetch("http://localhost:3000/api/bot");
+    console.log("🔄 Pinged bot API to keep it active");
+  } catch (error) {
+    console.error("❌ Bot self-ping failed:", error);
+  }
+}, 5 * 60 * 1000); // ⏳ Ping every 5 minutes
+
+// ✅ Singleton pattern to prevent multiple bot instances
 if (!global.botInstance) {
   global.botInstance = new Telegraf(BOT_TOKEN);
 }
 const bot = global.botInstance;
 
-// ✅ Set up bot commands
 bot.start(async (ctx) => {
   await connectDB();
   const telegramId = ctx.message.chat.id;
@@ -49,6 +58,19 @@ bot.command("subscribe", async (ctx) => {
     { upsert: true }
   );
   ctx.reply("✅ Subscription successful! Use /weather to get updates. 😊🌤️");
+});
+
+bot.command("unsubscribe", async (ctx) => {
+  await connectDB();
+  const telegramId = ctx.message.chat.id;
+  const user = await User.findOne({ telegramId });
+
+  if (!user || !user.subscribed) {
+    return ctx.reply("❌ You're not subscribed yet.");
+  }
+
+  await User.updateOne({ telegramId }, { subscribed: false });
+  return ctx.reply("✅ You've unsubscribed successfully.");
 });
 
 bot.command("weather", async (ctx) => {
@@ -89,7 +111,7 @@ bot.on("text", async (ctx) => {
     const apiKeyResponse = await fetch(
       "https://sky-spy-bot-git-main-pratham-rastogis-projects.vercel.app/api/settings/active"
     );
-    const { WEATHER_API_KEY } = await apiKeyResponse.json();
+    const WEATHER_API_KEY = await apiKeyResponse.json();
 
     if (!WEATHER_API_KEY) {
       return ctx.reply("❌ No active weather API key found. Contact admin.");
@@ -97,13 +119,29 @@ bot.on("text", async (ctx) => {
 
     console.log(`🟢 Using API Key: ${WEATHER_API_KEY}`);
 
-    // 🌤 Fetch weather data
+    // ⏳ Create a timeout function (AbortController)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      controller.abort(); // Abort the request if it takes too long
+    }, 10000);
+
+    // 🌤 Fetch weather data with timeout handling
     const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(
       city
     )}&appid=${WEATHER_API_KEY}&units=metric`;
+    const response = await fetch(weatherUrl, {
+      signal: controller.signal,
+    }).catch((err) => {
+      if (err.name === "AbortError") {
+        throw new Error("Request timed out");
+      }
+      throw err;
+    });
 
-    const response = await fetch(weatherUrl);
+    clearTimeout(timeout); // 🛑 Clear timeout if request succeeds
+
     const data = await response.json();
+    console.log("🔍 API Response:", data);
 
     if (data.cod === 401) {
       return ctx.reply("❌ API key is invalid or expired. Contact admin.");
@@ -111,7 +149,7 @@ bot.on("text", async (ctx) => {
     if (data.cod !== 200) {
       return ctx.reply(
         `❌ Error: ${
-          data.message || "City not found. Try checking the city name again."
+          data.message || "City not found. try checking city again "
         }`
       );
     }
@@ -123,6 +161,13 @@ bot.on("text", async (ctx) => {
     return ctx.reply(weatherInfo, { parse_mode: "Markdown" });
   } catch (error) {
     console.error("❌ Fetch error:", error);
+
+    if (error.message === "Request timed out") {
+      return ctx.reply(
+        "⚠️ The weather service is taking too long. The API key might be broken. Please contact the admin."
+      );
+    }
+
     return ctx.reply("❌ Failed to fetch weather data. Try again later.");
   }
 });
@@ -135,28 +180,21 @@ bot.on("message", async (ctx) => {
   }
 });
 
-// ✅ Webhook handler
-export default async function handler(req, res) {
-  if (req.method === "GET") {
-    return res.status(200).json({ message: "Telegram bot is running" });
-  }
-
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
+export async function POST(req) {
   try {
-    await connectDB(); // Ensure DB is connected
-
-    const update = req.body;
-    console.log("📥 Incoming Webhook Update:", update);
-
-    // ✅ Properly handle incoming updates
-    await bot.handleUpdate(update);
-
-    return res.status(200).json({ message: "Update processed" });
+    const body = await req.json();
+    console.log("📥 Incoming Webhook Update:", JSON.stringify(body, null, 2));
+    await bot.handleUpdate(body);
+    return new Response("OK", { status: 200 });
   } catch (error) {
-    console.error("❌ Webhook Error:", error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    console.error("❌ Webhook error:", error);
+    return new Response("Error", { status: 500 });
   }
+}
+
+export async function GET() {
+  return new Response(JSON.stringify({ message: "Telegram bot is running" }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
 }
