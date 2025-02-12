@@ -147,12 +147,8 @@ export default async function handler(req, res) {
     const update = req.body;
     console.log("📥 Incoming Webhook Update:", update);
 
-    if (update.message && update.message.text === "/weather") {
-      const chatId = update.message.chat.id;
-      await bot.telegram.sendMessage(chatId, "🌤 Fetching weather...");
-
-      return res.status(200).json({ message: "Weather command received" });
-    }
+    // ✅ Properly handle incoming updates
+    await bot.handleUpdate(update);
 
     return res.status(200).json({ message: "Update processed" });
   } catch (error) {
