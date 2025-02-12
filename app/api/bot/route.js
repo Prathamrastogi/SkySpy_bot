@@ -156,3 +156,10 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }
+
+export async function GET() {
+  return new Response(JSON.stringify({ message: "Telegram bot is running" }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
