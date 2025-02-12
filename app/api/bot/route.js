@@ -136,20 +136,19 @@ bot.on("message", async (ctx) => {
 });
 
 // ✅ Webhook handler
+import { NextResponse } from "next/server";
+
 export async function POST(req) {
   try {
     const body = await req.json();
-    console.log("📥 Incoming Webhook Update:", JSON.stringify(body, null, 2));
+    console.log("📥 Incoming Webhook:", JSON.stringify(body, null, 2));
 
-    if (!body.message) {
-      console.error("❌ Invalid update received (missing message).");
-      return new Response("Unauthorized", { status: 401 });
-    }
+    // Immediately return 200 to prevent timeout
+    setTimeout(() => bot.handleUpdate(body), 0);
 
-    await bot.handleUpdate(body);
-    return new Response("OK", { status: 200 });
+    return new NextResponse("OK", { status: 200 });
   } catch (error) {
     console.error("❌ Webhook error:", error);
-    return new Response("Internal Server Error", { status: 500 });
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
