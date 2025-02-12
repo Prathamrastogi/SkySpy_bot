@@ -6,7 +6,7 @@ const images = ["/screen02.png", "/screen01.png", "/screen03.png"];
 
 setInterval(async () => {
   try {
-    await fetch("http://localhost:3000/api/bot");
+    await fetch("https://sky-spy-bot-git-main-pratham-rastogis-projects.vercel.app/api/bot");
     console.log("🔄 Pinged bot API to keep it active");
   } catch (error) {
     console.error("❌ Bot self-ping failed:", error);
