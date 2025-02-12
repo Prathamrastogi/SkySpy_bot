@@ -137,6 +137,10 @@ bot.on("message", async (ctx) => {
 
 // ✅ Webhook handler
 export default async function handler(req, res) {
+  if (req.method === "GET") {
+    return res.status(200).json({ message: "Telegram bot is running" });
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
@@ -155,11 +159,4 @@ export default async function handler(req, res) {
     console.error("❌ Webhook Error:", error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
-}
-
-export async function GET() {
-  return new Response(JSON.stringify({ message: "Telegram bot is running" }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
 }
