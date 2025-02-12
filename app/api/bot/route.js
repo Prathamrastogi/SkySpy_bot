@@ -137,29 +137,19 @@ bot.on("message", async (ctx) => {
 
 // ✅ Webhook handler
 export async function POST(req) {
-  // ✅ Ensure requests are coming from Telegram (Optional but recommended)
-  const TELEGRAM_SECRET_TOKEN = process.env.TELEGRAM_SECRET_TOKEN; // Store a secret token in .env
-  const botToken = process.env.BOT_TOKEN;
-
-  if (!botToken) {
-    console.error("❌ BOT_TOKEN is missing");
-    return new Response("BOT_TOKEN missing", { status: 500 });
-  }
-
-  // ✅ Validate Telegram Secret Token (if set)
-  if (TELEGRAM_SECRET_TOKEN && req.headers.get("x-telegram-bot-api-secret-token") !== TELEGRAM_SECRET_TOKEN) {
-    console.error("❌ Unauthorized Webhook Request");
-    return new Response("Unauthorized", { status: 401 });
-  }
-
   try {
     const body = await req.json();
     console.log("📥 Incoming Webhook Update:", JSON.stringify(body, null, 2));
-    await global.botInstance.handleUpdate(body);
+
+    if (!body.message) {
+      console.error("❌ Invalid update received (missing message).");
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    await bot.handleUpdate(body);
     return new Response("OK", { status: 200 });
   } catch (error) {
     console.error("❌ Webhook error:", error);
-    return new Response("Error", { status: 500 });
+    return new Response("Internal Server Error", { status: 500 });
   }
 }
-
