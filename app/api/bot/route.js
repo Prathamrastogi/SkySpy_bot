@@ -87,7 +87,7 @@ bot.on("text", async (ctx) => {
 
     // 🔥 Fetch the active API key dynamically
     const apiKeyResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/settings/active`
+      "https://sky-spy-bot-git-main-pratham-rastogis-projects.vercel.app/api/settings/active"
     );
     const { WEATHER_API_KEY } = await apiKeyResponse.json();
 
