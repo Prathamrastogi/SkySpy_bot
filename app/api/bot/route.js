@@ -81,7 +81,7 @@ bot.command("weather", async (ctx) => {
   if (!user) {
     return ctx.reply("❌ You need to /start the bot first.");
   }
-  if (user.blocked) {
+  if (user.isBlocked) {
     return ctx.reply("🚫 You're blocked by the admin.");
   }
   if (!user.subscribed) {
