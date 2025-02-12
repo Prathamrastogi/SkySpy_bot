@@ -1,11 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "api/bot/route.js": {
-      "runtime": "nodejs18",
-      "memory": 512
-    }
-  },
   "routes": [
     {
       "src": "/api/(.*)",
