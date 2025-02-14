@@ -1,15 +1,51 @@
 "use client";
 import Link from "next/link";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export default function Navbar() {
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  const closeMenu = () => {
-    setMenuOpen(false);
-  };
+  useEffect(() => {
+    if (!session) return;
+
+    const checkAdminStatus = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/admin/check`, {
+          headers: { Authorization: `Bearer ${session.accessToken}` },
+        });
+
+        const data = await res.json();
+        setIsAdmin(res.ok && data.isAdmin);
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [session]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!event.target.closest("#mobile-menu")) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener("click", handleOutsideClick);
+    }
+
+    return () => {
+      document.removeEventListener("click", handleOutsideClick);
+    };
+  }, [menuOpen]);
 
   return (
     <nav className="font-darumadrop fixed top-4 left-4 right-4 bg-white z-20 border border-black rounded-lg shadow-lg">
@@ -22,22 +58,16 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Navigation Links */}
+        {/* Desktop Navigation */}
         <div className="hidden md:flex space-x-8">
-          <Link
-            href="/"
-            className="text-gray-900 hover:text-blue-700"
-            onClick={closeMenu}
-          >
+          <Link href="/" className="text-gray-900 hover:text-blue-700">
             Home
           </Link>
-          <Link
-            href="/admin"
-            className="text-gray-900 hover:text-blue-700"
-            onClick={closeMenu}
-          >
-            Admin Panel
-          </Link>
+          {isAdmin && (
+            <Link href="/admin" className="text-gray-900 hover:text-blue-700">
+              Admin Panel
+            </Link>
+          )}
         </div>
 
         {/* Action Buttons */}
@@ -86,21 +116,23 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {menuOpen && (
-        <div className="md:hidden">
+        <div id="mobile-menu" className="md:hidden">
           <Link
             href="/"
             className="block py-2 px-4 text-gray-900 hover:bg-gray-100"
-            onClick={closeMenu}
+            onClick={() => setMenuOpen(false)}
           >
             Home
           </Link>
-          <Link
-            href="/admin"
-            className="block py-2 px-4 text-gray-900 hover:bg-gray-100"
-            onClick={closeMenu}
-          >
-            Admin Panel
-          </Link>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="block py-2 px-4 text-gray-900 hover:bg-gray-100"
+              onClick={() => setMenuOpen(false)}
+            >
+              Admin Panel
+            </Link>
+          )}
         </div>
       )}
     </nav>
