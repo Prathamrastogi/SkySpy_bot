@@ -120,12 +120,6 @@ The Sky Spy Bot assignment provided by AST Consulting was an exciting and challe
 While the backend logic is well-structured and fully functional, the admin panel UI could benefit from design improvements. However, I have ensured that the code is well-documented to enhance readability and maintainability.
 ```
 
-### Additional Resources 📽️
-```plaintext
-To further demonstrate the functionality, I have prepared a video walkthrough:
-1️⃣ Functionality Walkthrough – [Link Here]
-```
-
 ```plaintext
 I hope these resources help in testing and evaluating my submission smoothly. I am excited about the next steps in the selection process and look forward to further discussions with AST Consulting.
 
